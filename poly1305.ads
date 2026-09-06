@@ -53,7 +53,7 @@ private
    --  The Poly1305 context maintains internal accumulators and key data.
    --  Uses base-2^26 representation (h0..h4) to fit comfortably within 64-bit 
    --  unsigned integers during multiplications, preventing overflow without 
-   --  requiring 128-bit types.
+   --  requireing 128-bit types.
    type Context is record
       Initialized : Boolean := False;
       
@@ -67,10 +67,10 @@ private
       s1, s2, s3, s4     : Interfaces.Unsigned_64 := 0;
       
       --  The second half of the 32-byte key ('s' in the spec), used during finalization
-      S_Key              : Byte_Array (0 .. 15) := (others => 0);
+      S_Key              : Byte_Array (0 .. 15) := [others => 0];
       
       --  Buffer for leftover bytes not yet forming a complete 16-byte block
-      Buffer             : Byte_Array (0 .. 15) := (others => 0);
+      Buffer             : Byte_Array (0 .. 15) := [others => 0];
       Leftover           : Natural := 0;
    end record;
 
