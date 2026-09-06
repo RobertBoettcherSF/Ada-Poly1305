@@ -18,7 +18,7 @@ package body Poly1305 is
    --  Core Poly1305 block processing logic using base 2^26 radix arithmetic.
    -----------------------------------------------------------------------------
    procedure Process_Block (Ctx : in out Context; Block : Byte_Array; Length : Natural) is
-      C : Byte_Array (0 .. 16) := (others => 0);
+      C : Byte_Array (0 .. 16) := [others => 0];
       T0, T1, T2, T3, T4 : Unsigned_32;
       c0, c1, c2, c3, c4 : Unsigned_64;
       d0, d1, d2, d3, d4 : Unsigned_64;
@@ -38,10 +38,10 @@ package body Poly1305 is
       
       --  Convert the padded block into base 2^26 representation
       c0 := Unsigned_64 (T0 and 16#3FFFFFF#);
-      c1 := Unsigned_64 (((T0 shift_right 26) or (T1 shift_left 6)) and 16#3FFFFFF#);
-      c2 := Unsigned_64 (((T1 shift_right 20) or (T2 shift_left 12)) and 16#3FFFFFF#);
-      c3 := Unsigned_64 (((T2 shift_right 14) or (T3 shift_left 18)) and 16#3FFFFFF#);
-      c4 := Unsigned_64 (((T3 shift_right 8)  or (T4 shift_left 24)) and 16#3FFFFFF#);
+      c1 := Unsigned_64 ((Shift_Right (T0, 26) or Shift_Left (T1, 6)) and 16#3FFFFFF#);
+      c2 := Unsigned_64 ((Shift_Right (T1, 20) or Shift_Left (T2, 12)) and 16#3FFFFFF#);
+      c3 := Unsigned_64 ((Shift_Right (T2, 14) or Shift_Left (T3, 18)) and 16#3FFFFFF#);
+      c4 := Unsigned_64 ((Shift_Right (T3, 8)  or Shift_Left (T4, 24)) and 16#3FFFFFF#);
       
       --  Add chunk to accumulator
       Ctx.h0 := Ctx.h0 + c0;
@@ -60,22 +60,22 @@ package body Poly1305 is
       
       --  Propagate carries across base-26 limbs and reduce
       Ctx.h0 := d0 and 16#3FFFFFF#;
-      d1 := d1 + (d0 shift_right 26);
+      d1 := d1 + Shift_Right (d0, 26);
       
       Ctx.h1 := d1 and 16#3FFFFFF#;
-      d2 := d2 + (d1 shift_right 26);
+      d2 := d2 + Shift_Right (d1, 26);
       
       Ctx.h2 := d2 and 16#3FFFFFF#;
-      d3 := d3 + (d2 shift_right 26);
+      d3 := d3 + Shift_Right (d2, 26);
       
       Ctx.h3 := d3 and 16#3FFFFFF#;
-      d4 := d4 + (d3 shift_right 26);
+      d4 := d4 + Shift_Right (d3, 26);
       
       Ctx.h4 := d4 and 16#3FFFFFF#;
-      Ctx.h0 := Ctx.h0 + (d4 shift_right 26) * 5;
+      Ctx.h0 := Ctx.h0 + Shift_Right (d4, 26) * 5;
       
       --  Final carry from wrap-around modulo P
-      Ctx.h1 := Ctx.h1 + (Ctx.h0 shift_right 26);
+      Ctx.h1 := Ctx.h1 + Shift_Right (Ctx.h0, 26);
       Ctx.h0 := Ctx.h0 and 16#3FFFFFF#;
    end Process_Block;
 
@@ -109,10 +109,10 @@ package body Poly1305 is
       
       --  Convert clamped r to base 2^26
       Ctx.r0 := Unsigned_64 (T0 and 16#3FFFFFF#);
-      Ctx.r1 := Unsigned_64 (((T0 shift_right 26) or (T1 shift_left 6)) and 16#3FFFFFF#);
-      Ctx.r2 := Unsigned_64 (((T1 shift_right 20) or (T2 shift_left 12)) and 16#3FFFFFF#);
-      Ctx.r3 := Unsigned_64 (((T2 shift_right 14) or (T3 shift_left 18)) and 16#3FFFFFF#);
-      Ctx.r4 := Unsigned_64 ((T3 shift_right 8) and 16#3FFFFFF#);
+      Ctx.r1 := Unsigned_64 ((Shift_Right (T0, 26) or Shift_Left (T1, 6)) and 16#3FFFFFF#);
+      Ctx.r2 := Unsigned_64 ((Shift_Right (T1, 20) or Shift_Left (T2, 12)) and 16#3FFFFFF#);
+      Ctx.r3 := Unsigned_64 ((Shift_Right (T2, 14) or Shift_Left (T3, 18)) and 16#3FFFFFF#);
+      Ctx.r4 := Unsigned_64 (Shift_Right (T3, 8) and 16#3FFFFFF#);
       
       --  Precompute scaled values (r * 5)
       Ctx.s1 := Ctx.r1 * 5;
@@ -134,7 +134,7 @@ package body Poly1305 is
       end if;
       
       while Remain > 0 loop
-         if Ctx.Leftover = 0 and then Remain >= 16 loop
+         if Ctx.Leftover = 0 and then Remain >= 16 then
             --  Process full 16-byte blocks efficiently without buffering
             Process_Block (Ctx, Message (Idx .. Idx + 15), 16);
             Idx := Idx + 16;
@@ -183,25 +183,25 @@ package body Poly1305 is
       end if;
       
       --  Fully carry-propagate to ensure strictly reduced base-26 limbs
-      Ctx.h2 := Ctx.h2 + (Ctx.h1 shift_right 26); Ctx.h1 := Ctx.h1 and 16#3FFFFFF#;
-      Ctx.h3 := Ctx.h3 + (Ctx.h2 shift_right 26); Ctx.h2 := Ctx.h2 and 16#3FFFFFF#;
-      Ctx.h4 := Ctx.h4 + (Ctx.h3 shift_right 26); Ctx.h3 := Ctx.h3 and 16#3FFFFFF#;
-      Ctx.h0 := Ctx.h0 + (Ctx.h4 shift_right 26) * 5; Ctx.h4 := Ctx.h4 and 16#3FFFFFF#;
-      Ctx.h1 := Ctx.h1 + (Ctx.h0 shift_right 26); Ctx.h0 := Ctx.h0 and 16#3FFFFFF#;
+      Ctx.h2 := Ctx.h2 + Shift_Right (Ctx.h1, 26); Ctx.h1 := Ctx.h1 and 16#3FFFFFF#;
+      Ctx.h3 := Ctx.h3 + Shift_Right (Ctx.h2, 26); Ctx.h2 := Ctx.h2 and 16#3FFFFFF#;
+      Ctx.h4 := Ctx.h4 + Shift_Right (Ctx.h3, 26); Ctx.h3 := Ctx.h3 and 16#3FFFFFF#;
+      Ctx.h0 := Ctx.h0 + Shift_Right (Ctx.h4, 26) * 5; Ctx.h4 := Ctx.h4 and 16#3FFFFFF#;
+      Ctx.h1 := Ctx.h1 + Shift_Right (Ctx.h0, 26); Ctx.h0 := Ctx.h0 and 16#3FFFFFF#;
       
       --  Compute g = h - (2^130 - 5). We do this by adding 5 and subtracting 2^130.
       g0 := Ctx.h0 + 5;
-      b  := g0 shift_right 26; g0 := g0 and 16#3FFFFFF#;
+      b  := Shift_Right (g0, 26); g0 := g0 and 16#3FFFFFF#;
       g1 := Ctx.h1 + b;
-      b  := g1 shift_right 26; g1 := g1 and 16#3FFFFFF#;
+      b  := Shift_Right (g1, 26); g1 := g1 and 16#3FFFFFF#;
       g2 := Ctx.h2 + b;
-      b  := g2 shift_right 26; g2 := g2 and 16#3FFFFFF#;
+      b  := Shift_Right (g2, 26); g2 := g2 and 16#3FFFFFF#;
       g3 := Ctx.h3 + b;
-      b  := g3 shift_right 26; g3 := g3 and 16#3FFFFFF#;
-      g4 := Ctx.h4 + b - Unsigned_64 (1 shift_left 26);
+      b  := Shift_Right (g3, 26); g3 := g3 and 16#3FFFFFF#;
+      g4 := Ctx.h4 + b - Shift_Left (Unsigned_64 (1), 26);
       
       --  Constant-time check for borrow. If g4 borrowed, bit 63 is set.
-      Borrow := g4 shift_right 63;
+      Borrow := Shift_Right (g4, 63);
       
       --  If Borrow=1, Mask becomes 0x000...000. If Borrow=0, Mask becomes 0xFFF...FFF.
       --  Modular arithmetic on Unsigned_64 strictly wraps.
@@ -215,10 +215,10 @@ package body Poly1305 is
       Ctx.h4 := (g4 and Mask) or (Ctx.h4 and not Mask);
       
       --  Convert base-26 back to 32-bit limbs (128 bits total, top 2 bits dropped)
-      T0 := (Ctx.h0 or (Ctx.h1 shift_left 26)) and 16#FFFF_FFFF#;
-      T1 := ((Ctx.h1 shift_right 6) or (Ctx.h2 shift_left 20)) and 16#FFFF_FFFF#;
-      T2 := ((Ctx.h2 shift_right 12) or (Ctx.h3 shift_left 14)) and 16#FFFF_FFFF#;
-      T3 := ((Ctx.h3 shift_right 18) or (Ctx.h4 shift_left 8)) and 16#FFFF_FFFF#;
+      T0 := (Ctx.h0 or Shift_Left (Ctx.h1, 26)) and 16#FFFF_FFFF#;
+      T1 := (Shift_Right (Ctx.h1, 6) or Shift_Left (Ctx.h2, 20)) and 16#FFFF_FFFF#;
+      T2 := (Shift_Right (Ctx.h2, 12) or Shift_Left (Ctx.h3, 14)) and 16#FFFF_FFFF#;
+      T3 := (Shift_Right (Ctx.h3, 18) or Shift_Left (Ctx.h4, 8)) and 16#FFFF_FFFF#;
       
       --  Read the second half of the key (s)
       S0 := Unsigned_64 (To_U32 (Ctx.S_Key, 0));
@@ -228,30 +228,30 @@ package body Poly1305 is
       
       --  Add s to the result modulo 2^128
       Sum0 := T0 + S0;
-      Sum1 := T1 + S1 + (Sum0 shift_right 32);
-      Sum2 := T2 + S2 + (Sum1 shift_right 32);
-      Sum3 := T3 + S3 + (Sum2 shift_right 32);
+      Sum1 := T1 + S1 + Shift_Right (Sum0, 32);
+      Sum2 := T2 + S2 + Shift_Right (Sum1, 32);
+      Sum3 := T3 + S3 + Shift_Right (Sum2, 32);
       
       --  Pack Result into MAC output (Little-Endian)
       MAC (0)  := Byte (Sum0 and 16#FF#);
-      MAC (1)  := Byte ((Sum0 shift_right 8) and 16#FF#);
-      MAC (2)  := Byte ((Sum0 shift_right 16) and 16#FF#);
-      MAC (3)  := Byte ((Sum0 shift_right 24) and 16#FF#);
+      MAC (1)  := Byte (Shift_Right (Sum0, 8) and 16#FF#);
+      MAC (2)  := Byte (Shift_Right (Sum0, 16) and 16#FF#);
+      MAC (3)  := Byte (Shift_Right (Sum0, 24) and 16#FF#);
       
       MAC (4)  := Byte (Sum1 and 16#FF#);
-      MAC (5)  := Byte ((Sum1 shift_right 8) and 16#FF#);
-      MAC (6)  := Byte ((Sum1 shift_right 16) and 16#FF#);
-      MAC (7)  := Byte ((Sum1 shift_right 24) and 16#FF#);
+      MAC (5)  := Byte (Shift_Right (Sum1, 8) and 16#FF#);
+      MAC (6)  := Byte (Shift_Right (Sum1, 16) and 16#FF#);
+      MAC (7)  := Byte (Shift_Right (Sum1, 24) and 16#FF#);
       
       MAC (8)  := Byte (Sum2 and 16#FF#);
-      MAC (9)  := Byte ((Sum2 shift_right 8) and 16#FF#);
-      MAC (10) := Byte ((Sum2 shift_right 16) and 16#FF#);
-      MAC (11) := Byte ((Sum2 shift_right 24) and 16#FF#);
+      MAC (9)  := Byte (Shift_Right (Sum2, 8) and 16#FF#);
+      MAC (10) := Byte (Shift_Right (Sum2, 16) and 16#FF#);
+      MAC (11) := Byte (Shift_Right (Sum2, 24) and 16#FF#);
       
       MAC (12) := Byte (Sum3 and 16#FF#);
-      MAC (13) := Byte ((Sum3 shift_right 8) and 16#FF#);
-      MAC (14) := Byte ((Sum3 shift_right 16) and 16#FF#);
-      MAC (15) := Byte ((Sum3 shift_right 24) and 16#FF#);
+      MAC (13) := Byte (Shift_Right (Sum3, 8) and 16#FF#);
+      MAC (14) := Byte (Shift_Right (Sum3, 16) and 16#FF#);
+      MAC (15) := Byte (Shift_Right (Sum3, 24) and 16#FF#);
       
       --  Wipe internal state to protect sensitive cryptographic keying material
       Ctx := (Initialized => False, others => <>);
