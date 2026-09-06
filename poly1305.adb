@@ -156,7 +156,11 @@ package body Poly1305 is
             
             --  If buffer is now full, consume it
             if Ctx.Leftover = 16 then
-               Process_Block (Ctx, Ctx.Buffer, 16);
+               declare
+                  Temp_Block : constant Byte_Array := Ctx.Buffer;
+               begin
+                  Process_Block (Ctx, Temp_Block, 16);
+               end;
                Ctx.Leftover := 0;
             end if;
          end if;
@@ -179,7 +183,11 @@ package body Poly1305 is
       
       --  Process any remaining data in the buffer
       if Ctx.Leftover > 0 then
-         Process_Block (Ctx, Ctx.Buffer (0 .. Ctx.Leftover - 1), Ctx.Leftover);
+         declare
+            Temp_Block : constant Byte_Array := Ctx.Buffer (0 .. Ctx.Leftover - 1);
+         begin
+            Process_Block (Ctx, Temp_Block, Ctx.Leftover);
+         end;
       end if;
       
       --  Fully carry-propagate to ensure strictly reduced base-26 limbs
