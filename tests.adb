@@ -18,31 +18,31 @@ procedure Tests is
    
    --  RFC 8439 (Section 2.5.2) Standard Test Vector
    RFC_Key : constant Key_Type := 
-     (16#85#, 16#d6#, 16#be#, 16#78#, 16#57#, 16#55#, 16#6d#, 16#33#,
+     [16#85#, 16#d6#, 16#be#, 16#78#, 16#57#, 16#55#, 16#6d#, 16#33#,
       16#7f#, 16#44#, 16#52#, 16#fe#, 16#42#, 16#d5#, 16#06#, 16#a8#,
       16#01#, 16#03#, 16#80#, 16#8a#, 16#fb#, 16#0d#, 16#b2#, 16#fd#,
-      16#4a#, 16#bf#, 16#f6#, 16#af#, 16#41#, 16#49#, 16#f5#, 16#1b#);
+      16#4a#, 16#bf#, 16#f6#, 16#af#, 16#41#, 16#49#, 16#f5#, 16#1b#];
       
    RFC_Msg_Str : constant String := "Cryptographic Forum Research Group";
    RFC_Msg : Byte_Array (0 .. RFC_Msg_Str'Length - 1);
    
    RFC_Expected : constant MAC_Type :=
-     (16#a8#, 16#06#, 16#1d#, 16#c1#, 16#30#, 16#51#, 16#36#, 16#c6#,
-      16#c2#, 16#2b#, 16#8b#, 16#af#, 16#0c#, 16#01#, 16#27#, 16#a9#);
+     [16#a8#, 16#06#, 16#1d#, 16#c1#, 16#30#, 16#51#, 16#36#, 16#c6#,
+      16#c2#, 16#2b#, 16#8b#, 16#af#, 16#0c#, 16#01#, 16#27#, 16#a9#];
       
-   Zero_Key : constant Key_Type := (others => 0);
-   Empty_Msg : constant Byte_Array (1 .. 0) := (others => 0);
-   Zero_MAC : constant MAC_Type := (others => 0);
+   Zero_Key : constant Key_Type := [others => 0];
+   Empty_Msg : constant Byte_Array (1 .. 0) := [others => 0];
+   Zero_MAC : constant MAC_Type := [others => 0];
 begin
    -- Initialize RFC string bytes
    for I in RFC_Msg'Range loop
-      RFC_Msg (I) := Byte (Character'Pos (RFC_Msg_Str (RFC_Msg_Str'First + Integer (I))));
+      RFC_Msg (I) := Byte (Character'Pos (RFC_Msg_Str (RFC_Msg_Str'First + I)));
    end loop;
 
    -- TEST 1 — Single-shot variant on RFC 8439 Vector
    Put_Line ("TEST 1 — Generate_MAC: Single-shot RFC 8439 Vector");
    declare
-      Res : MAC_Type := Generate_MAC (RFC_Msg, RFC_Key);
+      Res : constant MAC_Type := Generate_MAC (RFC_Msg, RFC_Key);
    begin
       Check ("1.1 First byte correctness", Res (0) = RFC_Expected (0));
       Check ("1.2 Last byte correctness", Res (15) = RFC_Expected (15));
@@ -102,7 +102,7 @@ begin
    -- TEST 5 — Empty Message (Single-shot)
    Put_Line ("TEST 5 — Generate_MAC: Empty Message, Zero Key");
    declare
-      Res : MAC_Type := Generate_MAC (Empty_Msg, Zero_Key);
+      Res : constant MAC_Type := Generate_MAC (Empty_Msg, Zero_Key);
    begin
       Check ("5.1 Result is zeroed (1)", Res (0) = 0);
       Check ("5.2 Result is zeroed (2)", Res (15) = 0);
@@ -127,8 +127,8 @@ begin
    -- TEST 7 — Exactly 16 Bytes (Single full block)
    Put_Line ("TEST 7 — Generate_MAC: Exactly 16 bytes (one full block)");
    declare
-      Sixteen : constant Byte_Array (0 .. 15) := (others => 16#CC#);
-      Res : MAC_Type := Generate_MAC (Sixteen, RFC_Key);
+      Sixteen : constant Byte_Array (0 .. 15) := [others => 16#CC#];
+      Res : constant MAC_Type := Generate_MAC (Sixteen, RFC_Key);
    begin
       Check ("7.1 Computed without crash", True);
       Check ("7.2 Valid output length", Res'Length = 16);
@@ -138,8 +138,8 @@ begin
    -- TEST 8 — Exactly 17 Bytes (Block + 1 leftover byte)
    Put_Line ("TEST 8 — Generate_MAC: Exactly 17 bytes");
    declare
-      Seventeen : constant Byte_Array (0 .. 16) := (others => 16#DD#);
-      Res : MAC_Type := Generate_MAC (Seventeen, RFC_Key);
+      Seventeen : constant Byte_Array (0 .. 16) := [others => 16#DD#];
+      Res : constant MAC_Type := Generate_MAC (Seventeen, RFC_Key);
    begin
       Check ("8.1 Computed without crash", True);
       Check ("8.2 Valid output size", Res'Length = 16);
@@ -149,13 +149,13 @@ begin
    -- TEST 9 — Security edge case: All 0xFF Key
    Put_Line ("TEST 9 — Clamping check with All-0xFF Key on empty msg");
    declare
-      FF_Key : constant Key_Type := (others => 16#FF#);
-      Res : MAC_Type := Generate_MAC (Empty_Msg, FF_Key);
+      FF_Key : constant Key_Type := [others => 16#FF#];
+      Res : constant MAC_Type := Generate_MAC (Empty_Msg, FF_Key);
    begin
       -- MAC must be exactly 'S' Key when msg is empty
       Check ("9.1 Result reflects S-Key", Res (0) = 16#FF#);
       Check ("9.2 Reflects clamping ignores S", Res (15) = 16#FF#);
-      Check ("9.3 Entire MAC is 0xFF", Res = (0 .. 15 => 16#FF#));
+      Check ("9.3 Entire MAC is 0xFF", Res = [0 .. 15 => 16#FF#]);
    end;
 
    -- TEST 10 — Exception invariant: Update on uninitialized
